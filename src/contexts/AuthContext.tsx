@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '../types';
+import { apiService } from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -13,64 +14,74 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Simulate token validation
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+    const initializeAuth = async () => {
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
+        setToken(savedToken);
+        try {
+          // Validate token by fetching current user
+          const currentUser = await apiService.getCurrentUser();
+          setUser(currentUser);
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          // Clear invalid token
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock authentication - in production, this would be a real API call
-    const mockUsers = [
-      { id: '1', username: 'admin', password: 'admin123', email: 'admin@threatshield.com', role: 'admin' as const },
-      { id: '2', username: 'analyst', password: 'analyst123', email: 'analyst@threatshield.com', role: 'analyst' as const },
-      { id: '3', username: 'viewer', password: 'viewer123', email: 'viewer@threatshield.com', role: 'viewer' as const },
-    ];
-    
-    const foundUser = mockUsers.find(u => u.username === username && u.password === password);
-    
-    if (foundUser) {
-      const user: User = {
-        id: foundUser.id,
-        username: foundUser.username,
-        email: foundUser.email,
-        role: foundUser.role,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-      };
-      
-      setUser(user);
-      localStorage.setItem('token', 'mock-jwt-token');
-      localStorage.setItem('user', JSON.stringify(user));
+
+    try {
+      const response = await apiService.login({ username, password });
+
+      // Store token and user data
+      setToken(response.token);
+      localStorage.setItem('token', response.token);
+
+      // Fetch full user details
+      const currentUser = await apiService.getCurrentUser();
+      setUser(currentUser);
+      localStorage.setItem('user', JSON.stringify(currentUser));
+
       setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
 
+  const isAuthenticated = !!token && !!user;
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      isLoading,
+      isAuthenticated
+    }}>
       {children}
     </AuthContext.Provider>
   );
