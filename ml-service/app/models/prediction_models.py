@@ -13,6 +13,8 @@ from datetime import datetime
 import asyncio
 
 from ..schemas.prediction_schemas import ThreatType, ThreatSeverity, ModelInfo
+import shap
+from lime.lime_tabular import LimeTabularExplainer
 
 logger = logging.getLogger(__name__)
 
@@ -318,4 +320,31 @@ class ThreatPredictor:
             
         except Exception as e:
             logger.error(f"Retraining error: {str(e)}")
+            raise e
+    
+    async def explain_prediction(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Provide explanation for a prediction using SHAP values"""
+        if not self.is_loaded:
+            raise RuntimeError("Models not loaded")
+            
+        try:
+            # Extract features
+            features = self._extract_features(data)
+            features_scaled = self.scaler.transform(features)
+            
+            # Get SHAP values
+            explainer = shap.TreeExplainer(self.threat_classifier)
+            shap_values = explainer.shap_values(features_scaled)
+            
+            # Get feature importance
+            feature_importance = dict(zip(self.feature_names, 
+                                         np.abs(shap_values).mean(axis=0)))
+            
+            return {
+                "feature_importance": feature_importance,
+                "top_factors": sorted(feature_importance.items(), 
+                                     key=lambda x: x[1], reverse=True)[:5]
+            }
+        except Exception as e:
+            logger.error(f"Explanation error: {str(e)}")
             raise e

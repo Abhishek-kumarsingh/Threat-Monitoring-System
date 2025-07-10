@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     
     # Security Settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # Performance Settings
+    ENABLE_CACHE: bool = os.getenv("ENABLE_CACHE", "True").lower() == "true"
+    CACHE_TTL: int = 3600  # Cache time-to-live in seconds
+    DYNAMIC_BATCH_SIZING: bool = True
     
     # Logging Settings
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
