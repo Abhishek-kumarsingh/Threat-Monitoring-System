@@ -1,4 +1,4 @@
-# 🛡️ Enterprise Threat Analysis Platform
+# 🛡️ Threat Analysis Platform
 
 A comprehensive, enterprise-grade platform for real-time network threat analysis using machine learning. Built with modern microservices architecture featuring React + TypeScript frontend, Spring Boot backend, FastAPI ML service, and Docker containerization.
 
