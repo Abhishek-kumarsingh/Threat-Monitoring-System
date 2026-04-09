@@ -18,7 +18,7 @@
     "recharts": "^2.12.2",
     "clsx": "^2.1.0",
     "date-fns": "^3.3.1",
-    "axios": "^1.6.2",
+    "axios": "^1.13.5",
     "sockjs-client": "^1.6.1",
     "stompjs": "^2.3.3",
     "react-hook-form": "^7.48.2",
